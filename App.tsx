@@ -1,4 +1,3 @@
-import { Feather as Icon } from "@expo/vector-icons";
 import { Camera } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
 import * as Permissions from "expo-permissions";
@@ -9,10 +8,10 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
   TouchableWithoutFeedback,
-  View
+  View,
 } from "react-native";
+import IconButton from "./src/components";
 const { width: wWidth, height: wHeight } = Dimensions.get("window");
 
 const whiteBlcProps = [
@@ -28,9 +27,7 @@ export default function App() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
   const [flash, setFlash] = useState(Camera.Constants.FlashMode.off);
-  const [whBalance, setWhBalance] = useState<string>(
-    Camera.Constants.WhiteBalance.auto
-  );
+
   const cam = useRef<Camera | null>();
 
   const _takePicture = async () => {
@@ -57,6 +54,14 @@ export default function App() {
     }
   };
 
+  const _handleCameraToggle = () => {
+    if (type === Camera.Constants.Type.back) {
+      setType(Camera.Constants.Type.front);
+    } else {
+      setType(Camera.Constants.Type.back);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       const { status } = await Camera.requestPermissionsAsync();
@@ -79,26 +84,7 @@ export default function App() {
     );
   };
 
-  const _handleWhiteBalance = (value: string) => {
-    switch (value) {
-      case value === "auto":
-        return {
-          setWhBalance(Camera.Constants.WhiteBalance.auto)
-        }
-      case value === "sunny":
-        setWhBalance(Camera.Constants.WhiteBalance.sunny);
-      case value === "cloudy":
-        setWhBalance(Camera.Constants.WhiteBalance.cloudy);
-      case value === "shadow":
-        setWhBalance(Camera.Constants.WhiteBalance.shadow);
-      case value === "incandescent":
-        setWhBalance(Camera.Constants.WhiteBalance.incandescent);
-      case value === "fluorescent":
-        setWhBalance(Camera.Constants.WhiteBalance.fluorescent);
-      default:
-        setWhBalance(Camera.Constants.WhiteBalance.auto);
-    }
-  };
+  const _handleWhiteBalance = (value: string) => {};
   const styles = StyleSheet.create({
     cameraBox: {
       flex: 1,
@@ -131,88 +117,73 @@ export default function App() {
       alignItems: "center",
     },
   });
-  console.log(whBalance);
   return (
     <View style={{ flex: 1 }}>
       <StatusBar />
-      <Camera
-        whiteBalance={whBalance}
-        flashMode={flash}
-        ref={cam}
-        style={styles.cameraBox}
-        type={type}
-      >
-        <View style={styles.camContainer}>
-          <View style={styles.camHeader}>
+      <Camera flashMode={flash} ref={cam} style={styles.cameraBox} type={type}>
+        <View
+          style={{
+            backgroundColor: "black",
+            width: wWidth,
+            height: wHeight * 0.1,
+          }}
+        >
+          <View style={{ padding: 20 }}>
             <ScrollView>
-              <View>
-                <TouchableOpacity onPress={() => _toggleFlash()}>
-                  <Icon
-                    name={
-                      flash === Camera.Constants.FlashMode.on
-                        ? "zap"
-                        : "zap-off"
-                    }
-                    size={20}
-                    color="white"
-                  />
-                </TouchableOpacity>
-              </View>
+              <IconButton
+                icon={
+                  flash === Camera.Constants.FlashMode.on ? "zap" : "zap-off"
+                }
+                onPress={_toggleFlash}
+              />
             </ScrollView>
           </View>
-          <View style={styles.camBottom}>
+        </View>
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            backgroundColor: "black",
+            width: wWidth,
+            opacity: 0.5,
+            height: wHeight * 0.2,
+          }}
+        >
+          <View
+            style={{
+              flexDirection: "column",
+              justifyContent: "center",
+              width: wWidth,
+            }}
+          >
             <View
               style={{
-                paddingVertical: 25,
-                justifyContent: "center",
+                width: wWidth,
+                alignItems: "center",
               }}
             >
-              <ScrollView
-                showsHorizontalScrollIndicator={false}
-                horizontal={true}
-              >
-                {whiteBlcProps.map((item, _) => {
+              <ScrollView horizontal={true}>
+                {whiteBlcProps.map((wb, _) => {
                   return (
-                    <TouchableWithoutFeedback
-                      key={item.id}
-                      onPress={() => _handleWhiteBalance(item.id)}
-                    >
+                    <TouchableWithoutFeedback key={wb.id}>
                       <View style={{ padding: 10 }}>
-                        <Text style={{ color: "white", fontSize: 20 }}>
-                          {item.property}
-                        </Text>
+                        <Text style={{ color: "white" }}>{wb.property}</Text>
                       </View>
                     </TouchableWithoutFeedback>
                   );
                 })}
               </ScrollView>
             </View>
-            <View style={styles.camBottomInside}>
-              <View>
-                <View>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setType(
-                        type === Camera.Constants.Type.back
-                          ? Camera.Constants.Type.front
-                          : Camera.Constants.Type.back
-                      );
-                    }}
-                  >
-                    <Icon name="refresh-cw" size={20} color="white" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View>
-                <TouchableOpacity onPress={() => _takePicture()}>
-                  <Icon name="aperture" size={50} color="white" />
-                </TouchableOpacity>
-              </View>
-              <View>
-                <TouchableOpacity onPress={() => _takePicture()}>
-                  <Icon name="grid" size={20} color="white" />
-                </TouchableOpacity>
-              </View>
+            <View
+              style={{
+                padding: 20,
+                flexDirection: "row",
+                justifyContent: "space-between",
+              }}
+            >
+              <IconButton icon="refresh-cw" onPress={_handleCameraToggle} />
+              <IconButton icon="camera" size={50} onPress={_takePicture} />
+              <IconButton icon="grid" onPress={() => true} />
             </View>
           </View>
         </View>
