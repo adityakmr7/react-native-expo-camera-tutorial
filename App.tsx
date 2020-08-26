@@ -1,12 +1,11 @@
 import { Camera } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
 import * as Permissions from "expo-permissions";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useReducer, useRef, useState } from "react";
 import {
   Dimensions,
   ScrollView,
   StatusBar,
-  StyleSheet,
   Text,
   TouchableWithoutFeedback,
   View,
@@ -23,10 +22,38 @@ const whiteBlcProps = [
   { id: "fluorescent", property: "Fluorescent" },
 ];
 
+const initialState = {
+  whbalance: Camera.Constants.WhiteBalance.auto,
+};
+function reducer(state: {}, action: { type: string }) {
+  switch (action.type) {
+    case "auto":
+      return { ...state, whbalance: Camera.Constants.WhiteBalance.auto };
+    case "sunny":
+      return { ...state, whbalance: Camera.Constants.WhiteBalance.sunny };
+    case "cloudy":
+      return { ...state, whbalance: Camera.Constants.WhiteBalance.cloudy };
+    case "shadow":
+      return { ...state, whbalance: Camera.Constants.WhiteBalance.shadow };
+    case "incandescent":
+      return {
+        ...state,
+        whbalance: Camera.Constants.WhiteBalance.incandescent,
+      };
+    case "fluorescent":
+      return { ...state, whbalance: Camera.Constants.WhiteBalance.fluorescent };
+    default:
+      return { ...state, whbalance: Camera.Constants.WhiteBalance.auto };
+  }
+}
+
 export default function App() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
   const [flash, setFlash] = useState(Camera.Constants.FlashMode.off);
+
+  // Use Reducer
+  const [state, dispatch] = useReducer(reducer, initialState);
 
   const cam = useRef<Camera | null>();
 
@@ -84,43 +111,41 @@ export default function App() {
     );
   };
 
-  const _handleWhiteBalance = (value: string) => {};
-  const styles = StyleSheet.create({
-    cameraBox: {
-      flex: 1,
-    },
-    camContainer: {
-      flex: 1,
-      backgroundColor: "transparent",
-      flexDirection: "column",
-      justifyContent: "space-between",
-    },
-    camHeader: {
-      backgroundColor: "black",
-      height: wHeight * 0.1 - 10,
-      width: wWidth,
-      padding: 20,
-      justifyContent: "center",
-    },
-    camBottom: {
-      opacity: 0.5,
-      backgroundColor: "black",
-      height: wHeight * 0.2,
-      width: wWidth,
-      flexDirection: "column",
-      justifyContent: "center",
-    },
-    camBottomInside: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      width: wWidth * 0.8,
-      alignItems: "center",
-    },
-  });
+  const _handleWhiteBalance = (value: string) => {
+    if (value === "auto") {
+      dispatch({ type: "auto" });
+    } else if (value === "sunny") {
+      dispatch({ type: "sunny" });
+    } else if (value === "cloudy") {
+      dispatch({
+        type: "cloudy",
+      });
+    } else if (value === "shadow") {
+      dispatch({
+        type: "shadow",
+      });
+    } else if (value === "incandescent") {
+      dispatch({
+        type: "incandescent",
+      });
+    } else if (value === "fluorescent") {
+      dispatch({
+        type: "fluorescent",
+      });
+    }
+  };
+
+  console.log(cam.current);
   return (
     <View style={{ flex: 1 }}>
       <StatusBar />
-      <Camera flashMode={flash} ref={cam} style={styles.cameraBox} type={type}>
+      <Camera
+        whiteBalance={state.whbalance}
+        flashMode={flash}
+        ref={cam}
+        style={{ flex: 1 }}
+        type={type}
+      >
         <View
           style={{
             backgroundColor: "black",
@@ -165,7 +190,10 @@ export default function App() {
               <ScrollView horizontal={true}>
                 {whiteBlcProps.map((wb, _) => {
                   return (
-                    <TouchableWithoutFeedback key={wb.id}>
+                    <TouchableWithoutFeedback
+                      onPress={() => _handleWhiteBalance(wb.id)}
+                      key={wb.id}
+                    >
                       <View style={{ padding: 10 }}>
                         <Text style={{ color: "white" }}>{wb.property}</Text>
                       </View>
