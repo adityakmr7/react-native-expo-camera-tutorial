@@ -1,3 +1,4 @@
+import Slider from "@react-native-community/slider";
 import { Camera } from "expo-camera";
 import * as MediaLibrary from "expo-media-library";
 import * as Permissions from "expo-permissions";
@@ -23,37 +24,36 @@ const whiteBlcProps = [
 ];
 
 const initialState = {
-  whbalance: Camera.Constants.WhiteBalance.auto,
+  whbalance: "auto",
+  cameraType: "back",
+  flash: "off",
+  zoomValue: 0,
 };
-function reducer(state: {}, action: { type: string }) {
+function reducer(state = initialState, action: { type: string; payload: any }) {
   switch (action.type) {
-    case "auto":
-      return { ...state, whbalance: Camera.Constants.WhiteBalance.auto };
-    case "sunny":
-      return { ...state, whbalance: Camera.Constants.WhiteBalance.sunny };
-    case "cloudy":
-      return { ...state, whbalance: Camera.Constants.WhiteBalance.cloudy };
-    case "shadow":
-      return { ...state, whbalance: Camera.Constants.WhiteBalance.shadow };
-    case "incandescent":
+    case "@type/WH_BALANCE":
+      return { ...state, whbalance: action.payload };
+    case "@type/CAMERA_BACK":
+      return { ...state, cameraType: action.payload };
+    case "@type/CAMERA_FRONT":
+      return { ...state, cameraType: action.payload };
+    case "@type/FLASH":
+      return { ...state, flash: action.payload };
+    case "@type/ZOOM":
       return {
         ...state,
-        whbalance: Camera.Constants.WhiteBalance.incandescent,
+        zoomValue: action.payload,
       };
-    case "fluorescent":
-      return { ...state, whbalance: Camera.Constants.WhiteBalance.fluorescent };
     default:
-      return { ...state, whbalance: Camera.Constants.WhiteBalance.auto };
+      return { ...state };
   }
 }
 
 export default function App() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [type, setType] = useState(Camera.Constants.Type.back);
-  const [flash, setFlash] = useState(Camera.Constants.FlashMode.off);
-
   // Use Reducer
   const [state, dispatch] = useReducer(reducer, initialState);
+  const { cameraType, whbalance, flash, zoomValue } = state;
 
   const cam = useRef<Camera | null>();
 
@@ -82,10 +82,16 @@ export default function App() {
   };
 
   const _handleCameraToggle = () => {
-    if (type === Camera.Constants.Type.back) {
-      setType(Camera.Constants.Type.front);
+    if (cameraType === "back") {
+      dispatch({
+        type: "@type/CAMERA_FRONT",
+        payload: "front",
+      });
     } else {
-      setType(Camera.Constants.Type.back);
+      dispatch({
+        type: "@type/CAMERA_BACK",
+        payload: "back",
+      });
     }
   };
 
@@ -104,47 +110,46 @@ export default function App() {
   }
 
   const _toggleFlash = () => {
-    setFlash(
-      flash === Camera.Constants.FlashMode.off
-        ? Camera.Constants.FlashMode.on
-        : Camera.Constants.FlashMode.off
-    );
-  };
-
-  const _handleWhiteBalance = (value: string) => {
-    if (value === "auto") {
-      dispatch({ type: "auto" });
-    } else if (value === "sunny") {
-      dispatch({ type: "sunny" });
-    } else if (value === "cloudy") {
+    if (flash === "off") {
       dispatch({
-        type: "cloudy",
+        type: "@type/FLASH",
+        payload: "on",
       });
-    } else if (value === "shadow") {
+    } else {
       dispatch({
-        type: "shadow",
-      });
-    } else if (value === "incandescent") {
-      dispatch({
-        type: "incandescent",
-      });
-    } else if (value === "fluorescent") {
-      dispatch({
-        type: "fluorescent",
+        type: "@type/FLASH",
+        payload: "off",
       });
     }
   };
 
-  console.log(cam.current);
+  const _zoomEffect = (value: number) => {
+    dispatch({
+      type: "@type/ZOOM",
+      payload: value,
+    });
+  };
+
+  const _handleWhiteBalance = (value: string) => {
+    if (value.length > 0) {
+      dispatch({
+        type: "@type/WH_BALANCE",
+        payload: value,
+      });
+    }
+  };
+
+  //console.log(cam.current);
   return (
     <View style={{ flex: 1 }}>
       <StatusBar />
       <Camera
-        whiteBalance={state.whbalance}
+        zoom={zoomValue}
+        whiteBalance={whbalance}
         flashMode={flash}
         ref={cam}
         style={{ flex: 1 }}
-        type={type}
+        type={cameraType}
       >
         <View
           style={{
@@ -156,14 +161,32 @@ export default function App() {
           <View style={{ padding: 20 }}>
             <ScrollView>
               <IconButton
-                icon={
-                  flash === Camera.Constants.FlashMode.on ? "zap" : "zap-off"
-                }
+                icon={flash === "on" ? "zap" : "zap-off"}
                 onPress={_toggleFlash}
               />
             </ScrollView>
           </View>
         </View>
+        <View
+          style={{
+            position: "relative",
+            top: 450,
+            width: wWidth,
+          }}
+        >
+          <Slider
+            onValueChange={_zoomEffect}
+            style={{
+              width: 300,
+              height: 80,
+            }}
+            minimumValue={0}
+            maximumValue={1}
+            minimumTrackTintColor="#FFFFFF"
+            maximumTrackTintColor="#000000"
+          />
+        </View>
+
         <View
           style={{
             position: "absolute",
