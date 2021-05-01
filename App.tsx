@@ -51,18 +51,17 @@ function reducer(state = initialState, action: { type: string; payload: any }) {
 
 export default function App() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+
   // Use Reducer
   const [state, dispatch] = useReducer(reducer, initialState);
   const { cameraType, whbalance, flash, zoomValue } = state;
-
+  const [recording, setRecording] = useState(false);
   const cam = useRef<Camera | null>();
 
   const _takePicture = async () => {
     if (cam.current) {
       const options = { quality: 0.5, base64: true, skipProcessing: true };
       let photo = await cam.current.takePictureAsync(options);
-
-      //console.log(cam.current.getSupportedRatiosAsync());
 
       const source = photo.uri;
       cam.current.pausePreview();
@@ -71,13 +70,42 @@ export default function App() {
     }
   };
 
-  const handleSave = async (photo: string) => {
-    const { status } = await Permissions.askAsync(Permissions.CAMERA_ROLL);
-    if (status === "granted") {
-      const assert = await MediaLibrary.createAssetAsync(photo);
+  const _startRecording = async () => {
+    if (!recording) {
+      setRecording(true);
+      let video = await cam.current?.recordAsync();
+      const assert = await MediaLibrary.createAssetAsync(video?.uri);
       await MediaLibrary.createAlbumAsync("Tutorial", assert);
     } else {
-      console.log("Oh You Missed to give permission");
+      setRecording(false);
+      cam.current?.stopRecording();
+    }
+  };
+  // console.log("CamCon", cam.current);
+
+  const handleSave = async (photo: string) => {
+    const assert = await MediaLibrary.createAssetAsync(photo);
+    await MediaLibrary.createAlbumAsync("Tutorial", assert);
+  };
+  useEffect(() => {
+    getPermissions();
+  }, []);
+  const getPermissions = async () => {
+    const { status } = await Camera.requestPermissionsAsync();
+    if (status === "granted") {
+      const { status: CameraRoll } = await Permissions.askAsync(
+        Permissions.CAMERA_ROLL
+      );
+      if (CameraRoll === "granted") {
+        const { status: audio } = await Permissions.askAsync(
+          Permissions.AUDIO_RECORDING
+        );
+        if (audio === "granted") {
+          setHasPermission(true);
+        }
+      }
+    } else {
+      setHasPermission(false);
     }
   };
 
@@ -94,13 +122,6 @@ export default function App() {
       });
     }
   };
-
-  useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestPermissionsAsync();
-      setHasPermission(status === "granted");
-    })();
-  }, []);
 
   if (hasPermission === null) {
     return <View />;
@@ -234,6 +255,11 @@ export default function App() {
             >
               <IconButton icon="refresh-cw" onPress={_handleCameraToggle} />
               <IconButton icon="camera" size={50} onPress={_takePicture} />
+              <IconButton
+                icon={recording ? "video" : "video-off"}
+                size={50}
+                onPress={_startRecording}
+              />
               <IconButton icon="grid" onPress={() => true} />
             </View>
           </View>
